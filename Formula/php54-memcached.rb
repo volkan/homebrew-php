@@ -9,6 +9,32 @@ class Php54Memcached < AbstractPhp54Extension
 
   depends_on 'libmemcached'
 
+  if ARGV.include? '--with-igbinary'
+      depends_on 'php54-igbinary'
+      puts "if get any error, you should run 'pecl install igbinary'"
+  end
+
+  def options
+   [
+     ['--with-igbinary', 'Include igbinary support'],     
+   ]
+  end
+
+  def configure_args
+    args = [
+      "--prefix=#{prefix}",        
+      phpconfig,
+      "--with-libmemcached-dir=#{Formula.factory('libmemcached').prefix}"    
+    ]
+
+    # Enable igbinary
+    if ARGV.include? '--with-igbinary'
+      args.push "--enable-memcached-igbinary"
+    end
+
+    return args
+  end    
+
   def install
     Dir.chdir "memcached-#{version}" unless build.head?
 
@@ -16,9 +42,7 @@ class Php54Memcached < AbstractPhp54Extension
     ENV.universal_binary
 
     safe_phpize
-    system "./configure", "--prefix=#{prefix}",
-                          phpconfig,
-                          "--with-libmemcached-dir=#{Formula.factory('libmemcached').prefix}"
+    system "./configure", *configure_args
     system "make"
     prefix.install "modules/memcached.so"
     write_config_file unless build.include? "without-config-file"
